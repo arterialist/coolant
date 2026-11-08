@@ -259,11 +259,11 @@ private struct NotchView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            shape.fill(.black)
-            content
-        }
-        .clipShape(shape)
+        // The content must stay an overlay. As a stack child its fixed width sizes the shell,
+        // which then never shrinks to the notch.
+        shape.fill(.black)
+            .overlay(alignment: .bottom) { content }
+            .clipShape(shape)
         .animation(heightAnimation, value: state.open)
         .frame(width: state.open ? layout.openWidth : layout.closedWidth)
         .animation(widthAnimation, value: state.open)

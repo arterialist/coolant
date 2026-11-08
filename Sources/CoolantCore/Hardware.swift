@@ -64,6 +64,7 @@ public enum SensorID {
     public static let gpuAverage = "group.gpu.average"
     public static let battery = "group.battery.hottest"
     public static let ssd = "group.storage.hottest"
+    public static let statsEfficiency = "group.cpu.stats"
     /// Air sensor that stayed flat through an all-core load step on an M3 Pro.
     public static let ambient = "smc.TAOL"
 }
@@ -100,6 +101,11 @@ public func summarySensors(from sensors: [Sensor]) -> [Sensor] {
     if let hot = cpu.max() {
         out.append(Sensor(id: SensorID.cpuHottest, name: "CPU hottest", group: .summary, value: hot))
         out.append(Sensor(id: SensorID.cpuAverage, name: "CPU median", group: .summary, value: median(cpu)))
+    }
+    // Stats reads only these three keys on an M3 Pro. It has no performance cores on this chip.
+    let statsKeys: Set<String> = ["smc.Te05", "smc.Te0P", "smc.Te0S"]
+    if let hot = sensors.filter({ statsKeys.contains($0.id) }).map(\.value).max() {
+        out.append(Sensor(id: SensorID.statsEfficiency, name: "CPU efficiency cores (as Stats)", group: .summary, value: hot))
     }
     if let hot = gpu.max() {
         out.append(Sensor(id: SensorID.gpuHottest, name: "GPU hottest", group: .summary, value: hot))
