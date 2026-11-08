@@ -4,6 +4,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-08
+
 ### Added
 
 - App icon, drawn by `scripts/make-icon.swift`.
@@ -18,5 +20,6 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 - Notch notifications.
 - Root helper that returns fans to automatic on disconnect, and a diagnostic CLI.
 
-[Unreleased]: https://github.com/arterialist/coolant/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/arterialist/coolant/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/arterialist/coolant/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/arterialist/coolant/releases/tag/v0.1.0
