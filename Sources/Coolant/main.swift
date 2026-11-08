@@ -23,8 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             self?.applyDockPolicy()
         }
         model.start()
+        model.notch.prepare()
         if CommandLine.arguments.contains("--demo-notch") {
             model.notch.show(NotchMessage(title: "CPU hot", detail: "CPU hottest 93° · Cooling", symbol: "thermometer.high", tint: .orange))
+            model.notch.show(NotchMessage(title: "Autopilot: back to normal", detail: "Fans 34%", symbol: "checkmark.circle.fill", tint: .green))
         }
         if CommandLine.arguments.contains("--open") || model.config.showDockIcon { showWindow() }
     }

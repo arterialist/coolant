@@ -63,6 +63,9 @@ public enum SensorID {
     public static let gpuHottest = "group.gpu.hottest"
     public static let gpuAverage = "group.gpu.average"
     public static let battery = "group.battery.hottest"
+    public static let ssd = "group.storage.hottest"
+    /// Air sensor that stayed flat through an all-core load step on an M3 Pro.
+    public static let ambient = "smc.TAOL"
 }
 
 /// Key prefixes confirmed by load tests on an M3 Pro: Tp and Te follow CPU load,
@@ -81,21 +84,32 @@ public func smcGroup(for key: String) -> (SensorGroup, String) {
 public func plausibleTemperature(_ value: Double) -> Bool { value > 5 && value < 130 }
 
 /// Computes the summary sensors from the individual readings.
+///
+/// CPU and GPU keys come in sets per core where some are a fixed offset from another, so a
+/// mean counts the same sensor several times. The median is stable against that. The hottest
+/// CPU value matches the firmware's own `TCMz` maximum to within 0.02 C.
 public func summarySensors(from sensors: [Sensor]) -> [Sensor] {
     func values(_ group: SensorGroup) -> [Double] { sensors.filter { $0.group == group }.map(\.value) }
-    func mean(_ v: [Double]) -> Double { v.reduce(0, +) / Double(v.count) }
+    func median(_ v: [Double]) -> Double {
+        let sorted = v.sorted()
+        let mid = sorted.count / 2
+        return sorted.count % 2 == 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+    }
     var out: [Sensor] = []
-    let cpu = values(.cpu), gpu = values(.gpu), battery = values(.battery)
+    let cpu = values(.cpu), gpu = values(.gpu), battery = values(.battery), storage = values(.storage)
     if let hot = cpu.max() {
         out.append(Sensor(id: SensorID.cpuHottest, name: "CPU hottest", group: .summary, value: hot))
-        out.append(Sensor(id: SensorID.cpuAverage, name: "CPU average", group: .summary, value: mean(cpu)))
+        out.append(Sensor(id: SensorID.cpuAverage, name: "CPU median", group: .summary, value: median(cpu)))
     }
     if let hot = gpu.max() {
         out.append(Sensor(id: SensorID.gpuHottest, name: "GPU hottest", group: .summary, value: hot))
-        out.append(Sensor(id: SensorID.gpuAverage, name: "GPU average", group: .summary, value: mean(gpu)))
+        out.append(Sensor(id: SensorID.gpuAverage, name: "GPU median", group: .summary, value: median(gpu)))
     }
     if let hot = battery.max() {
         out.append(Sensor(id: SensorID.battery, name: "Battery", group: .summary, value: hot))
+    }
+    if let hot = storage.max() {
+        out.append(Sensor(id: SensorID.ssd, name: "SSD", group: .summary, value: hot))
     }
     return out
 }

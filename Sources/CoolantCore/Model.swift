@@ -3,6 +3,7 @@ import Foundation
 public enum FanControl: Codable, Equatable, Hashable {
     case auto
     case full
+    case autopilot
     case constant(rpm: Double)
     case sensor(id: String, start: Double, max: Double)
 }
@@ -10,6 +11,7 @@ public enum FanControl: Codable, Equatable, Hashable {
 public struct Preset: Codable, Identifiable, Equatable {
     public static let automaticID = "builtin.automatic"
     public static let fullBlastID = "builtin.fullblast"
+    public static let autopilotID = "builtin.autopilot"
 
     public var id: String
     public var name: String
@@ -26,6 +28,11 @@ public struct Preset: Codable, Identifiable, Equatable {
     public func control(for fan: Int) -> FanControl { controls[fan] ?? .auto }
 
     public static let automatic = Preset(id: automaticID, name: "Automatic", controls: [:])
+    public static func autopilot(fanCount: Int) -> Preset {
+        Preset(id: autopilotID, name: "Autopilot",
+               controls: Dictionary(uniqueKeysWithValues: (0..<fanCount).map { ($0, .autopilot) }))
+    }
+
     public static func fullBlast(fanCount: Int) -> Preset {
         Preset(id: fullBlastID, name: "Full blast",
                controls: Dictionary(uniqueKeysWithValues: (0..<fanCount).map { ($0, .full) }))
@@ -62,7 +69,7 @@ public struct Rule: Codable, Identifiable, Equatable {
 }
 
 public struct MenuBarOptions: Codable, Equatable {
-    public var sensorID: String? = SensorID.cpuAverage
+    public var sensorID: String? = SensorID.cpuHottest
     public var fan: Int? = 0
     public var showIcon = true
     public var twoLines = true
@@ -87,6 +94,7 @@ public struct Config: Codable, Equatable {
 
     public static func starter(fanCount: Int) -> Config {
         var config = Config()
+        config.activePresetID = Preset.autopilotID
         let fans = 0..<fanCount
         func curve(_ id: String, _ start: Double, _ max: Double) -> [Int: FanControl] {
             Dictionary(uniqueKeysWithValues: fans.map { ($0, .sensor(id: id, start: start, max: max)) })

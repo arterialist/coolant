@@ -211,7 +211,7 @@ private struct FanEditor: View {
         case .constant(let value): kind = .constant; rpm = value
         case .sensor(let id, let s, let m): kind = .sensor; sensorID = id; start = s; maxTemperature = m
         case .full: kind = .constant; rpm = fan.maximum
-        case .auto: break
+        case .auto, .autopilot: break
         }
     }
 

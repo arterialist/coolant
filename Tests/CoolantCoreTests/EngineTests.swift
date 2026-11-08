@@ -120,3 +120,68 @@ struct ConfigTests {
         #expect(back == c)
     }
 }
+
+struct AutopilotTests {
+    func inputs(cpu: Double = 40, gpu: Double = 40, battery: Double = 30, ssd: Double = 30,
+                ambient: Double? = 31, pressure: Int = 0) -> AutopilotInputs {
+        AutopilotInputs(cpu: cpu, gpu: gpu, battery: battery, ssd: ssd, ambient: ambient, thermalPressure: pressure)
+    }
+
+    @Test func coolMachineStaysWithMacOS() {
+        var a = Autopilot()
+        #expect(a.update(inputs(), seconds: 2).fraction == nil)
+    }
+
+    @Test func hotCPUReachesFullSpeedWithinSeconds() {
+        var a = Autopilot()
+        var out = a.update(inputs(cpu: 90), seconds: 2)
+        for _ in 0..<8 { out = a.update(inputs(cpu: 90), seconds: 2) }
+        #expect(out.fraction == 1)
+        #expect(out.reason == "CPU")
+    }
+
+    @Test func hottestComponentDecides() {
+        var a = Autopilot()
+        var out = a.update(inputs(cpu: 70, battery: 39), seconds: 2)
+        for _ in 0..<12 { out = a.update(inputs(cpu: 70, battery: 39), seconds: 2) }
+        #expect(out.reason == "Battery")
+    }
+
+    @Test func hotRoomRelaxesTheBatteryTarget() {
+        #expect(Autopilot.batteryZone(ambient: 25).soft == 34)
+        #expect(Autopilot.batteryZone(ambient: 33).soft == 36)
+        #expect(Autopilot.batteryZone(ambient: 45).soft == 38)
+        #expect(Autopilot.batteryZone(ambient: nil).soft == 34)
+    }
+
+    @Test func fansFallSlowerThanTheyRise() {
+        var a = Autopilot()
+        var out = a.update(inputs(cpu: 90), seconds: 2)
+        for _ in 0..<8 { out = a.update(inputs(cpu: 90), seconds: 2) }
+        let after = a.update(inputs(cpu: 40), seconds: 2)
+        #expect(after.fraction! >= out.fraction! - 0.04 - 1e-9)
+    }
+
+    @Test func handsBackToMacOSOnlyAfterSustainedCalm() {
+        var a = Autopilot()
+        for _ in 0..<5 { _ = a.update(inputs(cpu: 85), seconds: 2) }
+        var out = a.update(inputs(), seconds: 2)
+        #expect(out.fraction != nil)
+        for _ in 0..<200 { out = a.update(inputs(), seconds: 2) }
+        #expect(out.fraction == nil)
+    }
+
+    @Test func thermalPressureSetsAFloor() {
+        var a = Autopilot()
+        var out = a.update(inputs(pressure: 2), seconds: 2)
+        for _ in 0..<8 { out = a.update(inputs(pressure: 2), seconds: 2) }
+        #expect(abs(out.fraction! - 0.85) < 0.001)
+        #expect(out.reason == "thermal pressure")
+    }
+
+    @Test func noSensorsAtAllDoesNotCrash() {
+        var a = Autopilot()
+        let out = a.update(AutopilotInputs(cpu: nil, gpu: nil, battery: nil, ssd: nil, ambient: nil, thermalPressure: 0), seconds: 2)
+        #expect(out.fraction == nil)
+    }
+}

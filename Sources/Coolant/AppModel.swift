@@ -10,6 +10,7 @@ final class AppModel: ObservableObject {
     static let foreignControllerID = "com.crystalidea.macsfancontrol"
     static let minimumRPMChange = 25.0
     static let failureGraceSeconds = 20.0
+    static let autopilotNoticeSeconds = 300.0
 
     @Published private(set) var fans: [Fan] = []
     @Published private(set) var sensors: [Sensor] = []
@@ -17,6 +18,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var foreignControllerRunning = false
     @Published private(set) var triggeringRule: Rule?
     @Published private(set) var failsafeEngaged = false
+    @Published private(set) var autopilotOutput = Autopilot.Output(fraction: nil, reason: "", demand: 0)
     @Published var config: Config { didSet { if config != oldValue { ConfigStore.save(config) } } }
 
     let notch = NotchController()
@@ -27,6 +29,11 @@ final class AppModel: ObservableObject {
     private let helper = HelperClient()
     private var rules = RuleEngine()
     private var failsafe = Failsafe()
+    private var autopilot = Autopilot()
+    private var autopilotCoolingHard = false
+    private var lastAutopilotNotice: Date?
+    private let hardwareQueue = DispatchQueue(label: "coolant.hardware", qos: .userInitiated)
+    private var reading = false
     private var ramps: [Int: FanRamp] = [:]
     private var commanded: [Int: Double] = [:]
     private var timer: Timer?
@@ -71,22 +78,75 @@ final class AppModel: ObservableObject {
     // MARK: Control loop
 
     private func readHardware() {
-        fans = readFans(smc)
-        sensors = reader.read()
+        publish(fans: readFans(smc), sensors: reader.read())
+    }
+
+    private func publish(fans: [Fan], sensors: [Sensor]) {
+        self.fans = fans
+        self.sensors = sensors
         temperatures = Dictionary(sensors.map { ($0.id, $0.value) }, uniquingKeysWith: { a, _ in a })
     }
 
+    /// SMC reads run off the main thread so they cannot hitch the notch animation.
     func tick() {
-        readHardware()
+        guard !reading else { return }
+        reading = true
+        let smc = smc, reader = reader
+        hardwareQueue.async { [weak self] in
+            let fans = readFans(smc)
+            let sensors = reader.read()
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self?.finishTick(fans: fans, sensors: sensors) }
+            }
+        }
+    }
+
+    private func finishTick(fans: [Fan], sensors: [Sensor]) {
+        reading = false
+        publish(fans: fans, sensors: sensors)
         foreignControllerRunning = !NSRunningApplication
             .runningApplications(withBundleIdentifier: Self.foreignControllerID).isEmpty
 
         if !asleep {
             evaluateRules()
             evaluateFailsafe()
+            evaluateAutopilot()
             applyControls()
         }
         onRefresh?()
+    }
+
+    private func evaluateAutopilot() {
+        guard fans.contains(where: { selectedControl(for: $0.id) == .autopilot }) else {
+            autopilot.reset()
+            autopilotOutput = Autopilot.Output(fraction: nil, reason: "", demand: 0)
+            autopilotCoolingHard = false
+            return
+        }
+        let inputs = AutopilotInputs(
+            cpu: temperatures[SensorID.cpuHottest], gpu: temperatures[SensorID.gpuHottest],
+            battery: temperatures[SensorID.battery], ssd: temperatures[SensorID.ssd],
+            ambient: temperatures[SensorID.ambient], thermalPressure: ProcessInfo.processInfo.thermalState.rawValue)
+        let output = autopilot.update(inputs, seconds: Self.tickSeconds)
+        autopilotOutput = output
+        noticeAutopilot(output)
+    }
+
+    private func noticeAutopilot(_ output: Autopilot.Output) {
+        let fraction = output.fraction ?? 0
+        let hard = autopilotCoolingHard ? fraction >= 0.5 : fraction >= 0.9
+        guard hard != autopilotCoolingHard else { return }
+        autopilotCoolingHard = hard
+        guard config.notifyWarnings else { return }
+        if let last = lastAutopilotNotice, Date().timeIntervalSince(last) < Self.autopilotNoticeSeconds { return }
+        lastAutopilotNotice = Date()
+        if hard {
+            notch.show(NotchMessage(title: "Autopilot: cooling hard", detail: "\(output.reason) · fans \(Int(fraction * 100))%",
+                                    symbol: "fanblades.fill", tint: .orange))
+        } else {
+            notch.show(NotchMessage(title: "Autopilot: back to normal", detail: "Fans \(Int(fraction * 100))%",
+                                    symbol: "checkmark.circle.fill", tint: .green))
+        }
     }
 
     private func evaluateRules() {
@@ -120,12 +180,25 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// The control in force right now: failsafe, then the winning trigger, then the selected preset.
+    /// The control in force right now. Under Autopilot a trigger can only add cooling, which
+    /// `plannedRPM` handles, so the row keeps showing Autopilot.
     func effectiveControl(for fan: Int) -> FanControl {
-        let inForce = failsafeEngaged && !commanded.isEmpty
-        if inForce { return .full }
-        if let id = triggeringRule?.presetID, let preset = preset(id: id) { return preset.control(for: fan) }
-        return selectedControl(for: fan)
+        if failsafeEngaged && !commanded.isEmpty { return .full }
+        let selected = selectedControl(for: fan)
+        if selected != .autopilot, let control = triggerControl(for: fan) { return control }
+        return selected
+    }
+
+    private func triggerControl(for fan: Int) -> FanControl? {
+        triggeringRule?.presetID.flatMap(preset(id:))?.control(for: fan)
+    }
+
+    private func plannedRPM(for fan: Fan) -> Double? {
+        let control = effectiveControl(for: fan.id)
+        let rpm = targetRPM(fan: fan, control: control)
+        guard control == .autopilot, let trigger = triggerControl(for: fan.id),
+              let triggered = targetRPM(fan: fan, control: trigger) else { return rpm }
+        return max(rpm ?? 0, triggered)
     }
 
     func selectedControl(for fan: Int) -> FanControl {
@@ -139,9 +212,8 @@ final class AppModel: ObservableObject {
             if !commanded.isEmpty { releaseFans() }
             return
         }
-        let wanted = fans.map { (fan: $0, control: effectiveControl(for: $0.id)) }
-        let needsHelper = !commanded.isEmpty || wanted.contains { $0.control != .auto }
-        guard needsHelper else {
+        let plan = fans.map { (fan: $0, rpm: plannedRPM(for: $0)) }
+        guard !commanded.isEmpty || plan.contains(where: { $0.rpm != nil }) else {
             helper.close()
             helperState = helper.isInstalled ? .ready : .missing
             return
@@ -153,8 +225,8 @@ final class AppModel: ObservableObject {
 
         var failure: String?
         var sent = false
-        for (fan, control) in wanted {
-            guard let rpm = targetRPM(fan: fan, control: control) else {
+        for (fan, planned) in plan {
+            guard let rpm = planned else {
                 ramps[fan.id] = nil
                 if commanded[fan.id] != nil {
                     let reply = helper.send(HelperRequest(cmd: .auto, fan: fan.id))
@@ -183,6 +255,8 @@ final class AppModel: ObservableObject {
             return nil
         case .full:
             return fan.maximum
+        case .autopilot:
+            return autopilotOutput.fraction.map { fan.minimum + $0 * (fan.maximum - fan.minimum) }
         case .constant(let rpm):
             return min(max(rpm, fan.minimum), fan.maximum)
         case .sensor(let id, let start, let maxTemperature):
@@ -228,7 +302,7 @@ final class AppModel: ObservableObject {
 
     // MARK: User actions
 
-    var allPresets: [Preset] { [.automatic, .fullBlast(fanCount: fans.count)] + config.presets }
+    var allPresets: [Preset] { [.autopilot(fanCount: fans.count), .automatic, .fullBlast(fanCount: fans.count)] + config.presets }
 
     func preset(id: String) -> Preset? { allPresets.first { $0.id == id } }
 
@@ -298,6 +372,9 @@ final class AppModel: ObservableObject {
         switch control {
         case .auto: return "Auto"
         case .full: return "Full"
+        case .autopilot:
+            guard let fraction = autopilotOutput.fraction else { return "Autopilot, macOS in charge" }
+            return "Autopilot, \(Int(fraction * 100))% for \(autopilotOutput.reason)"
         case .constant(let rpm): return "\(Int(rpm)) rpm"
         case .sensor(let id, let start, let max): return "\(sensorName(id)), \(format(start)) to \(format(max))"
         }
