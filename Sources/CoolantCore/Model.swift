@@ -94,7 +94,6 @@ public struct Config: Codable, Equatable {
 
     public static func starter(fanCount: Int) -> Config {
         var config = Config()
-        config.activePresetID = Preset.autopilotID
         let fans = 0..<fanCount
         func curve(_ id: String, _ start: Double, _ max: Double) -> [Int: FanControl] {
             Dictionary(uniqueKeysWithValues: fans.map { ($0, .sensor(id: id, start: start, max: max)) })
@@ -104,9 +103,9 @@ public struct Config: Codable, Equatable {
         let battery = Preset(name: "Battery protect", controls: curve(SensorID.battery, 33, 42))
         config.presets = [cooling, gpu, battery]
         config.rules = [
-            Rule(name: "Battery warm", sensorID: SensorID.battery, threshold: 38, hysteresis: 3, holdSeconds: 30, presetID: battery.id),
-            Rule(name: "CPU hot", sensorID: SensorID.cpuAverage, threshold: 85, hysteresis: 10, holdSeconds: 10, presetID: cooling.id),
-            Rule(name: "GPU hot", sensorID: SensorID.gpuAverage, threshold: 80, hysteresis: 10, holdSeconds: 10, presetID: gpu.id),
+            Rule(name: "Battery warm", enabled: false, sensorID: SensorID.battery, threshold: 38, hysteresis: 3, holdSeconds: 30, presetID: battery.id),
+            Rule(name: "CPU hot", enabled: false, sensorID: SensorID.cpuAverage, threshold: 85, hysteresis: 10, holdSeconds: 10, presetID: cooling.id),
+            Rule(name: "GPU hot", enabled: false, sensorID: SensorID.gpuAverage, threshold: 80, hysteresis: 10, holdSeconds: 10, presetID: gpu.id),
         ]
         return config
     }

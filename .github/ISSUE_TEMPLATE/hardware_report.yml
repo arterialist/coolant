@@ -1,0 +1,38 @@
+name: Hardware report
+description: Tell us how Coolant behaves on your Mac.
+labels: [hardware]
+body:
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and chip
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: coolantctl status
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: control
+    attributes:
+      label: Does setting a fan speed work?
+      options:
+        - "Yes"
+        - "No"
+        - Not tried
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Sensors that look wrong, or anything else you noticed.

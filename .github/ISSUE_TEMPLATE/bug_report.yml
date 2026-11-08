@@ -1,0 +1,36 @@
+name: Bug report
+description: Something does not work.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Include what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model and chip
+      placeholder: MacBook Pro 16-inch, M3 Pro (Mac15,7)
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: coolantctl status
+      description: Output of /Applications/Coolant.app/Contents/MacOS/coolantctl status
+      render: text
+  - type: textarea
+    id: log
+    attributes:
+      label: Helper log
+      description: Last lines of /var/log/coolantd.log, if the problem involves fan control.
+      render: text

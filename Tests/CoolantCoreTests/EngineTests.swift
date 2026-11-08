@@ -113,6 +113,12 @@ struct FailsafeTests {
 }
 
 struct ConfigTests {
+    @Test func newInstallLeavesFansToMacOS() {
+        let c = Config.starter(fanCount: 2)
+        #expect(c.activePresetID == Preset.automaticID)
+        #expect(c.rules.allSatisfy { !$0.enabled })
+    }
+
     @Test func roundTripsEveryControlKind() throws {
         var c = Config.starter(fanCount: 2)
         c.customControls = [0: .constant(rpm: 2000), 1: .full]

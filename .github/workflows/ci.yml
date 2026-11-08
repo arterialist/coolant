@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift --version
+      - name: Check resources
+        run: |
+          plutil -lint Resources/Info.plist
+          sh -n Resources/install-helper.sh
+          sh -n Resources/uninstall-helper.sh
+      - run: swift build -c release
+      - run: swift test
+      - name: Package the app
+        run: ./scripts/build.sh
