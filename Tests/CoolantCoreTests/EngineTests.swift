@@ -110,6 +110,24 @@ struct FailsafeTests {
         #expect(released)
         #expect(!f.engaged)
     }
+
+    @Test func blindOnlyAfterConsecutiveMissingReadings() {
+        var f = Failsafe()
+        let samples: [Double?] = [nil, nil, 60, nil, nil, nil]
+        let blind = samples.map { sample -> Bool in
+            _ = f.update(hottest: sample, limit: 105)
+            return f.blind
+        }
+        #expect(blind == [false, false, false, false, false, true])
+    }
+
+    @Test func readingEndsBlind() {
+        var f = Failsafe()
+        for _ in 0..<Failsafe.requiredSamples { _ = f.update(hottest: nil, limit: 105) }
+        #expect(f.blind)
+        _ = f.update(hottest: 60, limit: 105)
+        #expect(!f.blind)
+    }
 }
 
 struct ConfigTests {

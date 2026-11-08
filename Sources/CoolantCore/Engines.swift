@@ -117,11 +117,16 @@ public struct Failsafe {
     public static let releaseMargin = 8.0
     public static let requiredSamples = 3
     private var samplesOver = 0
+    private var samplesMissing = 0
 
     public init() {}
 
+    /// True after consecutive samples with no reading, when this cannot engage.
+    public var blind: Bool { samplesMissing >= Self.requiredSamples }
+
     /// Returns true when the state changed.
     public mutating func update(hottest: Double?, limit: Double) -> Bool {
+        samplesMissing = hottest == nil ? samplesMissing + 1 : 0
         guard let hottest else { return false }
         samplesOver = hottest >= limit ? samplesOver + 1 : 0
         if !engaged, samplesOver >= Self.requiredSamples { engaged = true; return true }

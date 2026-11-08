@@ -100,6 +100,7 @@ Other monitors can read quite differently. On an M3 Pro, Stats finds only `Te05`
 - Fans return to automatic before sleep.
 - While Coolant controls a fan, holding the failsafe temperature (105 °C by default) for 3 readings in a row forces maximum speed.
 - A curve whose sensor disappears runs its fan at maximum.
+- A constant RPM fan returns to automatic after 3 readings in a row with no CPU or GPU temperature, and goes back to its speed when one returns.
 - Coolant cannot set a fan below the minimum the SMC reports.
 
 A curve with low speeds and high limits can still let your Mac run hotter than macOS would. If you notice a burning smell, stop the workload, unplug the charger and get the machine inspected. Fan software cannot fix that.

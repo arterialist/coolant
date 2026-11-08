@@ -185,8 +185,10 @@ final class AppModel: ObservableObject {
     func effectiveControl(for fan: Int) -> FanControl {
         if failsafeEngaged && !commanded.isEmpty { return .full }
         let selected = selectedControl(for: fan)
-        if selected != .autopilot, let control = triggerControl(for: fan) { return control }
-        return selected
+        let control = selected != .autopilot ? triggerControl(for: fan) ?? selected : selected
+        // A constant speed ignores heat, and the failsafe cannot protect it without a reading.
+        if case .constant = control, failsafe.blind { return .auto }
+        return control
     }
 
     private func triggerControl(for fan: Int) -> FanControl? {

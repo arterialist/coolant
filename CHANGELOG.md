@@ -4,6 +4,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Changed
+
+- A constant RPM fan returns to macOS after 3 readings in a row with no CPU or GPU temperature, because the failsafe cannot protect it without one.
+
 ## [0.2.0] - 2026-11-08
 
 ### Changed
