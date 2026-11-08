@@ -9,6 +9,7 @@ final class AppModel: ObservableObject {
     static let tickSeconds = 2.0
     static let foreignControllerID = "com.crystalidea.macsfancontrol"
     static let minimumRPMChange = 25.0
+    static let failureGraceSeconds = 20.0
 
     @Published private(set) var fans: [Fan] = []
     @Published private(set) var sensors: [Sensor] = []
@@ -31,6 +32,7 @@ final class AppModel: ObservableObject {
     private var timer: Timer?
     private var asleep = false
     private var reportedError: String?
+    private var failingSince: Date?
     private var temperatures: [String: Double] = [:]
 
     init?() {
@@ -194,11 +196,25 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// A stopped fan makes the SMC refuse manual mode for several seconds while it spins up,
+    /// so only a failure that outlasts that window is worth reporting.
     private func report(_ failure: String?) {
-        helperState = failure.map { .failed($0) } ?? .ready
+        guard let failure else {
+            failingSince = nil
+            reportedError = nil
+            helperState = .ready
+            return
+        }
+        let since = failingSince ?? Date()
+        failingSince = since
+        guard Date().timeIntervalSince(since) >= Self.failureGraceSeconds else {
+            helperState = .ready
+            return
+        }
+        helperState = .failed(failure)
         guard failure != reportedError else { return }
         reportedError = failure
-        if let failure, config.notifyWarnings {
+        if config.notifyWarnings {
             notch.show(NotchMessage(title: "Fan control failed", detail: failure,
                                     symbol: "exclamationmark.triangle.fill", tint: .red))
         }

@@ -110,15 +110,21 @@ public struct RuleEngine {
     }
 }
 
+/// Spot sensors on a loaded M3 Pro touch 100 C for a single reading, so one sample must not
+/// trip this. It engages only after consecutive samples at or above the limit.
 public struct Failsafe {
     public private(set) var engaged = false
     public static let releaseMargin = 8.0
+    public static let requiredSamples = 3
+    private var samplesOver = 0
+
     public init() {}
 
     /// Returns true when the state changed.
     public mutating func update(hottest: Double?, limit: Double) -> Bool {
         guard let hottest else { return false }
-        if !engaged, hottest >= limit { engaged = true; return true }
+        samplesOver = hottest >= limit ? samplesOver + 1 : 0
+        if !engaged, samplesOver >= Self.requiredSamples { engaged = true; return true }
         if engaged, hottest <= limit - Self.releaseMargin { engaged = false; return true }
         return false
     }

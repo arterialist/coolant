@@ -81,7 +81,7 @@ public struct Config: Codable, Equatable {
     public var launchAtLogin = false
     public var notifyPresetChanges = true
     public var notifyWarnings = true
-    public var failsafeTemperature = 100.0
+    public var failsafeTemperature = 105.0
     public var menuBar = MenuBarOptions()
     public init() {}
 
@@ -97,8 +97,8 @@ public struct Config: Codable, Equatable {
         config.presets = [cooling, gpu, battery]
         config.rules = [
             Rule(name: "Battery warm", sensorID: SensorID.battery, threshold: 38, hysteresis: 3, holdSeconds: 30, presetID: battery.id),
-            Rule(name: "CPU hot", sensorID: SensorID.cpuHottest, threshold: 92, hysteresis: 10, holdSeconds: 10, presetID: cooling.id),
-            Rule(name: "GPU hot", sensorID: SensorID.gpuHottest, threshold: 88, hysteresis: 10, holdSeconds: 10, presetID: gpu.id),
+            Rule(name: "CPU hot", sensorID: SensorID.cpuAverage, threshold: 85, hysteresis: 10, holdSeconds: 10, presetID: cooling.id),
+            Rule(name: "GPU hot", sensorID: SensorID.gpuAverage, threshold: 80, hysteresis: 10, holdSeconds: 10, presetID: gpu.id),
         ]
         return config
     }

@@ -91,11 +91,21 @@ struct RuleTests {
 }
 
 struct FailsafeTests {
-    @Test func engagesAndReleasesWithMargin() {
+    @Test func singleSpikeDoesNotEngage() {
         var f = Failsafe()
-        #expect(f.update(hottest: 100, limit: 100) && f.engaged)
-        #expect(!f.update(hottest: 95, limit: 100) && f.engaged)
-        #expect(f.update(hottest: 92, limit: 100) && !f.engaged)
+        #expect(!f.update(hottest: 106, limit: 105))
+        #expect(!f.update(hottest: 90, limit: 105))
+        #expect(!f.update(hottest: 106, limit: 105))
+        #expect(!f.engaged)
+    }
+
+    @Test func engagesWhenSustainedAndReleasesWithMargin() {
+        var f = Failsafe()
+        _ = f.update(hottest: 105, limit: 105)
+        _ = f.update(hottest: 105, limit: 105)
+        #expect(f.update(hottest: 105, limit: 105) && f.engaged)
+        #expect(!f.update(hottest: 100, limit: 105) && f.engaged)
+        #expect(f.update(hottest: 97, limit: 105) && !f.engaged)
     }
 }
 

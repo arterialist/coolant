@@ -20,11 +20,13 @@ Fan state lives in the System Management Controller, reached through the `AppleS
 
 Sensor groups were picked by loading each chip and watching which keys moved. `Tp` and `Te` follow CPU load, `Tg` follows GPU load, and `TB0T` to `TB2T` match the battery gas gauge.
 
+Stopped fans refuse manual mode with SMC status 130 until they spin up, about 7 seconds on this machine. The app retries each tick and only reports failures that last over 20 seconds.
+
 ## Safety
 
 - The helper returns every fan to automatic if the app quits, crashes or misses heartbeats for 8 seconds, and when the helper itself stops.
 - Fans return to automatic before sleep.
-- While Coolant controls a fan, reaching the failsafe temperature (100 C by default) forces maximum speed.
+- While Coolant controls a fan, holding the failsafe temperature (105 C by default) for 3 readings in a row forces maximum speed.
 - A curve whose sensor disappears runs its fan at maximum.
 - Coolant stops writing while Macs Fan Control is running, because two controllers would fight over the same keys.
 
