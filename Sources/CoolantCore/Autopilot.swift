@@ -24,41 +24,36 @@ public struct Autopilot {
     }
 
     public struct Output: Equatable {
-        /// Share of the fan's range. Nil leaves the fans to macOS.
-        public var fraction: Double?
+        /// Share of the fan's range above its minimum speed. The fans never stop under Autopilot.
+        public var fraction: Double
         public var reason: String
         public var demand: Double
 
-        public init(fraction: Double?, reason: String, demand: Double) {
+        public init(fraction: Double, reason: String, demand: Double) {
             self.fraction = fraction
             self.reason = reason
             self.demand = demand
         }
     }
 
-    static let cpuZone = Zone(name: "CPU", soft: 65, hard: 85)
-    static let gpuZone = Zone(name: "GPU", soft: 60, hard: 80)
+    static let cpuZone = Zone(name: "CPU", soft: 60, hard: 80)
+    static let gpuZone = Zone(name: "GPU", soft: 55, hard: 75)
     static let ssdZone = Zone(name: "SSD", soft: 50, hard: 70)
     static let pressureFloor: [Double] = [0, 0.4, 0.85, 1]
 
     static let attackSeconds = 4.0
     static let releaseSeconds = 45.0
-    static let risePerSecond = 0.10
+    static let risePerSecond = 0.20
     static let fallPerSecond = 0.02
-    static let engageDemand = 0.10
-    static let calmDemand = 0.03
-    static let calmSeconds = 90.0
 
     /// A fan cannot push the pack below room air, so the target follows a hot room up to a limit.
     public static func batteryZone(ambient: Double?) -> Zone {
-        let soft = min(max(34, (ambient ?? 0) + 3), 38)
-        return Zone(name: "Battery", soft: soft, hard: soft + 6)
+        let soft = min(max(32, (ambient ?? 0) + 2), 38)
+        return Zone(name: "Battery", soft: soft, hard: soft + 5)
     }
 
     private var filtered: [String: Double] = [:]
     private var fraction = 0.0
-    private var engaged = false
-    private var calmFor = 0.0
 
     public init() {}
 
@@ -93,24 +88,17 @@ public struct Autopilot {
                 reason = zone.name
             }
         }
+        // With no readings at all the heat is unknown, so assume the worst.
+        if !readings.contains(where: { $0.1 != nil }) {
+            demand = 1
+            reason = "no sensors"
+        }
         let floor = Self.pressureFloor[min(max(inputs.thermalPressure, 0), 3)]
         if floor > demand {
             demand = floor
             reason = "thermal pressure"
         }
 
-        if !engaged {
-            guard demand >= Self.engageDemand else { return Output(fraction: nil, reason: reason, demand: demand) }
-            engaged = true
-            calmFor = 0
-            fraction = 0
-        }
-        calmFor = demand < Self.calmDemand ? calmFor + seconds : 0
-        if calmFor >= Self.calmSeconds {
-            engaged = false
-            fraction = 0
-            return Output(fraction: nil, reason: reason, demand: demand)
-        }
         let step = demand > fraction
             ? min(demand - fraction, Self.risePerSecond * seconds)
             : max(demand - fraction, -Self.fallPerSecond * seconds)

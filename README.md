@@ -28,14 +28,14 @@ Autopilot picks fan speed from whichever part needs cooling most. The hard limit
 
 | Part | Starts at | Full at | Why |
 | --- | --- | --- | --- |
-| CPU hottest | 65 C | 85 C | Wire and transistor wear follow an Arrhenius curve with temperature |
-| GPU hottest | 60 C | 80 C | Same mechanism |
-| Battery | 34 C, or room + 3 C, at most 38 C | Start + 6 C | Capacity fade speeds up with heat and high charge. A fan cannot cool below room air |
+| CPU hottest | 60 C | 80 C | Wire and transistor wear follow an Arrhenius curve with temperature |
+| GPU hottest | 55 C | 75 C | Same mechanism |
+| Battery | 32 C, or room + 2 C, at most 38 C | Start + 5 C | Capacity fade speeds up with heat and high charge. A fan cannot cool below room air |
 | SSD | 50 C | 70 C | NAND charge leaks faster when hot. Sources here are weaker |
 
 macOS thermal pressure sets a floor of 40%, 85% and 100% for fair, serious and critical.
 
-Readings count rises within seconds and falls over about 45 seconds. Fans rise at 10% of range per second and fall at 2%. Solder fatigue grows with roughly the square of each temperature swing, so a slow fall does more than a lower peak. When every part stays calm for 90 seconds, macOS takes the fans back and can stop them.
+Readings count rises within seconds and falls over about 45 seconds. Fans rise at 20% of range per second and fall at 2%. Solder fatigue grows with roughly the square of each temperature swing, so a slow fall does more than a lower peak. The fans never stop while Autopilot is selected, because stopped fans refuse manual mode for several seconds when heat arrives.
 
 A trigger can add cooling under Autopilot but cannot reduce it.
 

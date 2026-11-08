@@ -18,7 +18,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var foreignControllerRunning = false
     @Published private(set) var triggeringRule: Rule?
     @Published private(set) var failsafeEngaged = false
-    @Published private(set) var autopilotOutput = Autopilot.Output(fraction: nil, reason: "", demand: 0)
+    @Published private(set) var autopilotOutput = Autopilot.Output(fraction: 0, reason: "", demand: 0)
     @Published var config: Config { didSet { if config != oldValue { ConfigStore.save(config) } } }
 
     let notch = NotchController()
@@ -119,7 +119,7 @@ final class AppModel: ObservableObject {
     private func evaluateAutopilot() {
         guard fans.contains(where: { selectedControl(for: $0.id) == .autopilot }) else {
             autopilot.reset()
-            autopilotOutput = Autopilot.Output(fraction: nil, reason: "", demand: 0)
+            autopilotOutput = Autopilot.Output(fraction: 0, reason: "", demand: 0)
             autopilotCoolingHard = false
             return
         }
@@ -133,7 +133,7 @@ final class AppModel: ObservableObject {
     }
 
     private func noticeAutopilot(_ output: Autopilot.Output) {
-        let fraction = output.fraction ?? 0
+        let fraction = output.fraction
         let hard = autopilotCoolingHard ? fraction >= 0.5 : fraction >= 0.9
         guard hard != autopilotCoolingHard else { return }
         autopilotCoolingHard = hard
@@ -256,7 +256,7 @@ final class AppModel: ObservableObject {
         case .full:
             return fan.maximum
         case .autopilot:
-            return autopilotOutput.fraction.map { fan.minimum + $0 * (fan.maximum - fan.minimum) }
+            return fan.minimum + autopilotOutput.fraction * (fan.maximum - fan.minimum)
         case .constant(let rpm):
             return min(max(rpm, fan.minimum), fan.maximum)
         case .sensor(let id, let start, let maxTemperature):
@@ -373,8 +373,8 @@ final class AppModel: ObservableObject {
         case .auto: return "Auto"
         case .full: return "Full"
         case .autopilot:
-            guard let fraction = autopilotOutput.fraction else { return "Autopilot, macOS in charge" }
-            return "Autopilot, \(Int(fraction * 100))% for \(autopilotOutput.reason)"
+            guard !autopilotOutput.reason.isEmpty else { return "Autopilot, minimum speed" }
+            return "Autopilot, \(Int(autopilotOutput.fraction * 100))% for \(autopilotOutput.reason)"
         case .constant(let rpm): return "\(Int(rpm)) rpm"
         case .sensor(let id, let start, let max): return "\(sensorName(id)), \(format(start)) to \(format(max))"
         }
