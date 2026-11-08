@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/images/icon.png" alt="" width="128"></p>
+
 # Coolant
 
 [![CI](https://github.com/arterialist/coolant/actions/workflows/ci.yml/badge.svg)](https://github.com/arterialist/coolant/actions/workflows/ci.yml)
@@ -112,7 +114,6 @@ coolantctl hold <fan> <rpm> <seconds>  # test the helper, then revert to automat
 - Apple Silicon only.
 - Tested on one machine. M1, M2 and M4 reports are especially useful, so please [open a hardware report](https://github.com/arterialist/coolant/issues/new/choose).
 - External drive temperatures are not supported.
-- The app has no icon yet.
 
 ## Contributing
 

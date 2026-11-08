@@ -4,6 +4,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Added
+
+- App icon, drawn by `scripts/make-icon.swift`.
+
 ## [0.1.0] - 2026-11-08
 
 ### Added

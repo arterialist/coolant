@@ -9,7 +9,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Coolant" "$BIN/coolantd" "$BIN/coolantctl" "$APP/Contents/MacOS/"
 cp Resources/Info.plist "$APP/Contents/"
-cp Resources/install-helper.sh Resources/uninstall-helper.sh "$APP/Contents/Resources/"
+cp Resources/install-helper.sh Resources/uninstall-helper.sh Resources/AppIcon.icns "$APP/Contents/Resources/"
 codesign --force --sign - "$APP/Contents/MacOS/coolantd" "$APP/Contents/MacOS/coolantctl"
 codesign --force --sign - "$APP"
 if [ "${1:-}" = "--install" ]; then
