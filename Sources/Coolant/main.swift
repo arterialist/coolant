@@ -1,0 +1,63 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    private var model: AppModel!
+    private var statusBar: StatusBarController!
+    private var window: NSWindow?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard let model = AppModel() else {
+            let alert = NSAlert()
+            alert.messageText = "Coolant cannot read this Mac's SMC."
+            alert.runModal()
+            NSApp.terminate(nil)
+            return
+        }
+        self.model = model
+        applyDockPolicy()
+        statusBar = StatusBarController(model: model) { [weak self] in self?.showWindow() }
+        model.onRefresh = { [weak self] in
+            self?.statusBar.refresh()
+            self?.applyDockPolicy()
+        }
+        model.start()
+        if CommandLine.arguments.contains("--demo-notch") {
+            model.notch.show(NotchMessage(title: "CPU hot", detail: "CPU hottest 93° · Cooling", symbol: "thermometer.high", tint: .orange))
+        }
+        if CommandLine.arguments.contains("--open") || model.config.showDockIcon { showWindow() }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) { model?.releaseFans() }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showWindow()
+        return true
+    }
+
+    private func applyDockPolicy() {
+        let policy: NSApplication.ActivationPolicy = model.config.showDockIcon ? .regular : .accessory
+        if NSApp.activationPolicy() != policy { NSApp.setActivationPolicy(policy) }
+    }
+
+    private func showWindow() {
+        if window == nil {
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 600),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            window.title = "Coolant"
+            window.isReleasedWhenClosed = false
+            window.contentView = NSHostingView(rootView: RootView(model: model))
+            window.setFrameAutosaveName("Main")
+            window.center()
+            self.window = window
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+    }
+}
+
+let app = NSApplication.shared
+let delegate = MainActor.assumeIsolated { AppDelegate() }
+app.delegate = delegate
+app.run()
