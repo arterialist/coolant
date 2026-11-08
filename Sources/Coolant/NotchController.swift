@@ -162,7 +162,6 @@ final class NotchController {
         panel.backgroundColor = .clear
         panel.hasShadow = false
         panel.isMovable = false
-        panel.isFloatingPanel = true
         panel.hidesOnDeactivate = false
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]

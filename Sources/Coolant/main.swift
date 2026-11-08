@@ -8,6 +8,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var window: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Two copies would fight over the helper connection and the fans.
+        let current = NSRunningApplication.current
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: current.bundleIdentifier ?? "")
+            .filter { $0 != current }
+        if let other = others.first {
+            other.activate()
+            NSApp.terminate(nil)
+            return
+        }
+
         guard let model = AppModel() else {
             let alert = NSAlert()
             alert.messageText = "Coolant cannot read this Mac's SMC."
@@ -45,12 +55,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     private func showWindow() {
         if window == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 880, height: 600),
-                                  styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 660),
+                                  styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView], backing: .buffered, defer: false)
             window.title = "Coolant"
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
             window.isReleasedWhenClosed = false
             window.contentView = NSHostingView(rootView: RootView(model: model))
-            window.setFrameAutosaveName("Main")
+            window.setFrameAutosaveName("CoolantMain")
             window.center()
             self.window = window
         }

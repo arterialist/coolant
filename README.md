@@ -11,6 +11,19 @@ Fan control for Apple Silicon MacBooks. It lives in the menu bar, runs per-fan t
 <p align="center"><img src="docs/images/window.png" alt="Coolant window with fan controls and temperature sensors" width="720"></p>
 <p align="center"><img src="docs/images/notch.png" alt="A Coolant notification growing out of the notch" width="420"></p>
 
+<table>
+  <tr>
+    <td><img src="docs/images/tab-triggers.png" alt="Temperature triggers list"></td>
+    <td><img src="docs/images/tab-settings.png" alt="Settings page"></td>
+  </tr>
+  <tr>
+    <td align="center">Triggers</td>
+    <td align="center">Settings</td>
+  </tr>
+</table>
+
+<p align="center"><img src="docs/images/editor.png" alt="Fan curve editor" width="420"></p>
+
 > [!WARNING]
 > Coolant writes to your Mac's System Management Controller through a root helper. It has only been tested on a 16-inch MacBook Pro with an M3 Pro (`Mac15,7`) on macOS 27.2. Sensor names and the fan write sequence can differ on other chips. Use it at your own risk, and see [Safety](#safety).
 

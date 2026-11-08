@@ -4,6 +4,15 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+### Changed
+
+- New interface with a sidebar and Liquid Glass on macOS 26 and later. Earlier systems use standard materials.
+
+### Fixed
+
+- The notch panel now sits above the menu bar. A panel setting had reset its window level.
+- A second copy of the app now exits instead of competing for the helper.
+
 ## [0.1.1] - 2026-11-08
 
 ### Added
