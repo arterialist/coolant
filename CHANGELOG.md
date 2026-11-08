@@ -4,6 +4,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-08
+
 ### Changed
 
 - New interface with a sidebar and Liquid Glass on macOS 26 and later. Earlier systems use standard materials.
@@ -29,6 +31,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 - Notch notifications.
 - Root helper that returns fans to automatic on disconnect, and a diagnostic CLI.
 
-[Unreleased]: https://github.com/arterialist/coolant/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/arterialist/coolant/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/arterialist/coolant/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/arterialist/coolant/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/arterialist/coolant/releases/tag/v0.1.0
